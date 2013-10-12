@@ -37,7 +37,7 @@ CONFIG_VAR="no-bf no-cast no-rc2 no-rc4 no-rc5 no-dso no-dsa no-engine no-gost n
 #Dont add these....
 #no-md2 no-md5 no-mdc2 no-sha no-hmac no-ssl2 no-rsa
 
-ARCHS="x86_64 i386 armv7 armv7s arm64"
+ARCHS="i386 x86_64 armv7 armv7s arm64"
 DEVELOPER=`xcode-select -print-path`
 
 if [ ! -d "$DEVELOPER" ]; then
@@ -67,7 +67,7 @@ cd "${CURRENTPATH}/src/openssl-${VERSION}"
 
 for ARCH in ${ARCHS}
 do
-	if [ "${ARCH}" == "i386" ];
+	if [[ "${ARCH}" == "i386" || "${ARCH}" == "x86_64" ]];
 	then
 		PLATFORM="iPhoneSimulator"
 	else
@@ -93,12 +93,14 @@ do
 
     if [[ "$VERSION" =~ 1.0.0. ]]; then
 	    ./Configure BSD-generic32 ${CONFIG_VAR} --openssldir="${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk" > "${LOG}" 2>&1
+	elif [ "${ARCH}" == "x86_64" ]; then
+	    ./Configure darwin64-x86_64-cc ${CONFIG_VAR} --openssldir="${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk" > "${LOG}" 2>&1
     else
 	    ./Configure iphoneos-cross ${CONFIG_VAR} --openssldir="${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk" > "${LOG}" 2>&1
     fi
 
 	# add -isysroot to CC=
-	sed -ie "s!^CFLAG=!CFLAG=-isysroot ${CROSS_TOP}/Platforms/${PLATFORM}.platform/Developer/SDKs/${CROSS_SDK} -miphoneos-version-min=7.0 !" "Makefile"
+	sed -ie "s!^CFLAG=!CFLAG=-isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=7.0 !" "Makefile"
 
 	make >> "${LOG}" 2>&1
 	make install >> "${LOG}" 2>&1
@@ -106,9 +108,10 @@ do
 done
 
 echo "Build library..."
-lipo -create ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-x86_64.sdk/lib/libssl.a ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-i386.sdk/lib/libssl.a  ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7.sdk/lib/libssl.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7s.sdk/lib/libssl.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-arm64.sdk/lib/libssl.a -output ${CURRENTPATH}/lib/libssl.a
 
-lipo -create ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-x86_64.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-i386.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7s.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-arm64.sdk/lib/libcrypto.a -output ${CURRENTPATH}/lib/libcrypto.a
+lipo -create ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-i386.sdk/lib/libssl.a ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-x86_64.sdk/lib/libssl.a  ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7.sdk/lib/libssl.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7s.sdk/lib/libssl.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-arm64.sdk/lib/libssl.a -output ${CURRENTPATH}/lib/libssl.a
+
+lipo -create ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-i386.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-x86_64.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-armv7s.sdk/lib/libcrypto.a ${CURRENTPATH}/bin/iPhoneOS${SDKVERSION}-arm64.sdk/lib/libcrypto.a -output ${CURRENTPATH}/lib/libcrypto.a
 
 mkdir -p ${CURRENTPATH}/include
 cp -R ${CURRENTPATH}/bin/iPhoneSimulator${SDKVERSION}-i386.sdk/include/openssl ${CURRENTPATH}/include/
