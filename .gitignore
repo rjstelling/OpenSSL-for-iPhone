@@ -3,3 +3,5 @@ lib
 *.gz
 *xcuserdata*
 src
+build
+OpenSSL-for-iOS.xcodeproj/project.xcworkspace/xcuserdata

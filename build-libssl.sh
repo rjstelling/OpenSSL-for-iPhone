@@ -20,9 +20,9 @@
 #
 ###########################################################################
 #  Change values here													  #
-#																		  #
-VERSION="1.0.1e"													      #
-SDKVERSION="7.0"														  #
+#				
+VERSION="1.0.1g"													      #
+SDKVERSION="7.1"														  #
 #																		  #
 ###########################################################################
 #																		  #
@@ -48,6 +48,20 @@ if [ ! -d "$DEVELOPER" ]; then
   echo "sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer"
   exit 1
 fi
+
+case $DEVELOPER in  
+     *\ * )
+           echo "Your Xcode path contains whitespaces, which is not supported."
+           exit 1
+          ;;
+esac
+
+case $CURRENTPATH in  
+     *\ * )
+           echo "Your path contains whitespaces, which is not supported by 'make install'."
+           exit 1
+          ;;
+esac
 
 set -e
 if [ ! -e openssl-${VERSION}.tar.gz ]; then
@@ -91,6 +105,7 @@ do
 	mkdir -p "${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk"
 	LOG="${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk/build-openssl-${VERSION}.log"
 
+	set +e
     if [[ "$VERSION" =~ 1.0.0. ]]; then
 	    ./Configure BSD-generic32 ${CONFIG_VAR} --openssldir="${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk" > "${LOG}" 2>&1
 	elif [ "${ARCH}" == "x86_64" ]; then
@@ -98,11 +113,30 @@ do
     else
 	    ./Configure iphoneos-cross ${CONFIG_VAR} --openssldir="${CURRENTPATH}/bin/${PLATFORM}${SDKVERSION}-${ARCH}.sdk" > "${LOG}" 2>&1
     fi
+    
+    if [ $? != 0 ];
+    then 
+    	echo "Problem while configure - Please check ${LOG}"
+    	exit 1
+    fi
 
 	# add -isysroot to CC=
 	sed -ie "s!^CFLAG=!CFLAG=-isysroot ${CROSS_TOP}/SDKs/${CROSS_SDK} -miphoneos-version-min=7.0 !" "Makefile"
 
-	make >> "${LOG}" 2>&1
+	if [ "$1" == "verbose" ];
+	then
+		make
+	else
+		make >> "${LOG}" 2>&1
+	fi
+	
+	if [ $? != 0 ];
+    then 
+    	echo "Problem while make - Please check ${LOG}"
+    	exit 1
+    fi
+    
+    set -e
 	make install >> "${LOG}" 2>&1
 	make clean >> "${LOG}" 2>&1
 done
